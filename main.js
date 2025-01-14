@@ -73,6 +73,45 @@ rightFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
 rightFootBody.position.set(0.3, 2, 0); // Position right foot
 world.addBody(rightFootBody);
 
+// Function to create random platforms
+function createPlatforms(numPlatforms) {
+    for (let i = 0; i < numPlatforms; i++) {
+        const platformWidth = 1; // Width of the platform
+        const platformDepth = 1; // Depth of the platform
+        const platformHeight = 0.1; // Height of the platform
+
+        // Create the platform geometry and material
+        const platformGeometry = new THREE.BoxGeometry(platformWidth, platformHeight, platformDepth);
+        const platformMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff }); // Color of the platform
+        const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+        
+        // Generate random positions for the platforms within the bounds
+        const maxPosition = 4; // Maximum X/Z position (within ground size)
+        const minY = 0.5; // Minimum height (above ground)
+        const maxY = 2; // Set max height to ensure it's less than the player's jump height
+
+        platform.position.set(
+            (Math.random() * (maxPosition * 2)) - maxPosition, // Random X
+            Math.random() * (maxY - minY) + minY, // Random Y (platform's height)
+            (Math.random() * (maxPosition * 2)) - maxPosition // Random Z
+        );
+
+        // Add the platform to the scene
+        scene.add(platform);
+
+        // Create a physics body for the platform
+        const platformBody = new CANNON.Body({
+            mass: 0, // Static platform
+        });
+        platformBody.addShape(new CANNON.Box(new CANNON.Vec3(platformWidth / 2, platformHeight / 2, platformDepth / 2))); // Half dimensions for physics
+        platformBody.position.copy(platform.position); // Position the physics body at the same location
+        world.addBody(platformBody); // Add platform body to the physics world
+    }
+}
+
+// Create 5 random platforms
+createPlatforms(5);
+
 // Camera positioning
 camera.position.set(0, 2, 5);
 camera.lookAt(player.position);
@@ -109,8 +148,8 @@ function animate() {
         targetVelocity.z = 5; // Move backward
     }
     if (keys['ArrowLeft']) {
-        targetVelocity.x = -5; // Move left
-    }
+        targetVelocity.x = -5;
+    } 
     if (keys['ArrowRight']) {
         targetVelocity.x = 5; // Move right
     }
@@ -140,7 +179,7 @@ function animate() {
     }
 
     // Update grounded state (considering the height of the player)
-    isGrounded = playerBody.position.y <= 0.5;
+    isGrounded = playerBody.position.y <= 0.5; // Basic grounded detection
 
     // Update camera position to follow the player
     camera.position.set(player.position.x, player.position.y + 2, player.position.z + 5); // Follow the player
