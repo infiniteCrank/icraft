@@ -13,7 +13,7 @@ world.gravity.set(0, -9.82, 0); // Set gravity
 
 // Create ground
 const groundGeometry = new THREE.PlaneGeometry(10, 10);
-const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
@@ -23,6 +23,7 @@ const groundBody = new CANNON.Body({
     mass: 0 // Static body
 });
 groundBody.addShape(new CANNON.Plane());
+groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // Correct rotation
 world.addBody(groundBody);
 
 // Create player cube
@@ -36,18 +37,24 @@ const playerBody = new CANNON.Body({
     mass: 1 // Dynamic body
 });
 playerBody.addShape(new CANNON.Box(new CANNON.Vec3(0.25, 0.25, 0.25)));
-playerBody.position.set(0, 1, 0); // Initial position
+playerBody.position.set(0, 0.5, 0); // Adjust initial position to be above the ground
 world.addBody(playerBody);
 
 // Camera positioning
-camera.position.z = 5;
-camera.position.y = 3;
+camera.position.set(0, 2, 5); // Start position behind and above the player
 camera.lookAt(player.position);
 
 // Event listener for keyboard controls
 const keys = {};
 window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
+
+    // Jump when spacebar is pressed
+    if (e.code === 'Space') {
+        if (playerBody.position.y <= 0.5) { // Only jump if touching the ground
+            playerBody.velocity.y = 5; // Apply an upward force for jump
+        }
+    }
 });
 window.addEventListener('keyup', (e) => {
     keys[e.code] = false;
@@ -74,6 +81,10 @@ function animate() {
     // Sync Three.js and Cannon.js
     player.position.copy(playerBody.position);
     player.quaternion.copy(playerBody.quaternion);
+
+    // Update camera position to follow the player
+    camera.position.set(player.position.x, player.position.y + 2, player.position.z + 5); // Follow the player
+    camera.lookAt(player.position); // Look at player
 
     // Update physics world
     world.step(1 / 60);
