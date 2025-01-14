@@ -1,0 +1,29 @@
+{
+  "name": "icraft",
+  "version": "1.0.0",
+  "description": "a 3d platform game ",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/infiniteCrank/icraft.git"
+  },
+  "keywords": [
+    "3d",
+    "platformer",
+    "game",
+    "robot"
+  ],
+  "author": "Julian Wilkison-Duran",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/infiniteCrank/icraft/issues"
+  },
+  "homepage": "https://github.com/infiniteCrank/icraft#readme",
+  "dependencies": {
+    "cannon": "^0.6.2",
+    "three": "^0.172.0"
+  }
+}
