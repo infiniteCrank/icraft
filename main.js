@@ -88,13 +88,21 @@ function animate() {
     playerBody.velocity.x = targetVelocity.x;
     playerBody.velocity.z = targetVelocity.z;
 
-    // Prevent rotation by fixing the orientation
+    // Disable rotation
     playerBody.angularVelocity.set(0, 0, 0); // Reset angular velocity to zero
-    playerBody.quaternion.set(0, 0, 0, 1); // Reset quaternion to prevent rotation
+    playerBody.quaternion.set(0, 0, 0, 1); // Keep the player upright
 
     // Sync Three.js and Cannon.js
     player.position.copy(playerBody.position);
     player.quaternion.copy(playerBody.quaternion);
+
+    // Basic animation: "bouncing" effect on movement
+    const scaleFactor = 0.1; // Adjust this value for bounce strength
+    if (targetVelocity.x !== 0 || targetVelocity.z !== 0) {
+        player.scale.y = 1 + Math.sin(Date.now() * 0.005) * scaleFactor; // Bounce while moving
+    } else {
+        player.scale.y = 1; // Reset scale when not moving
+    }
 
     // Update grounded state (considering the height of the player)
     isGrounded = playerBody.position.y <= 0.5;
