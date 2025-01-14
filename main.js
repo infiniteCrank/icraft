@@ -26,7 +26,7 @@ groundBody.addShape(new CANNON.Plane());
 groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // Align the plane
 world.addBody(groundBody);
 
-// Create player cube
+// Create player cube (body)
 const playerGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 const player = new THREE.Mesh(playerGeometry, playerMaterial);
@@ -41,6 +41,37 @@ const playerBody = new CANNON.Body({
 playerBody.addShape(new CANNON.Box(new CANNON.Vec3(0.25, 0.25, 0.25)));
 playerBody.position.set(0, 2.5, 0); // Start above the ground
 world.addBody(playerBody);
+
+// Create feet
+const footGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+const footMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+
+const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
+leftFoot.position.set(-0.3, 2, 0); // Position left foot
+scene.add(leftFoot);
+
+const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
+rightFoot.position.set(0.3, 2, 0); // Position right foot
+scene.add(rightFoot);
+
+// Create physics bodies for feet
+const leftFootBody = new CANNON.Body({
+    mass: 1,
+    linearDamping: 0.9,
+    angularDamping: 0.9,
+});
+leftFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
+leftFootBody.position.set(-0.3, 2, 0); // Position left foot
+world.addBody(leftFootBody);
+
+const rightFootBody = new CANNON.Body({
+    mass: 1,
+    linearDamping: 0.9,
+    angularDamping: 0.9,
+});
+rightFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
+rightFootBody.position.set(0.3, 2, 0); // Position right foot
+world.addBody(rightFootBody);
 
 // Camera positioning
 camera.position.set(0, 2, 5);
@@ -95,6 +126,10 @@ function animate() {
     // Sync Three.js and Cannon.js
     player.position.copy(playerBody.position);
     player.quaternion.copy(playerBody.quaternion);
+
+    // Sync feet positions with the player
+    leftFoot.position.set(player.position.x - 0.3, player.position.y, player.position.z); // Update left foot position
+    rightFoot.position.set(player.position.x + 0.3, player.position.y, player.position.z); // Update right foot position
 
     // Basic animation: "bouncing" effect on movement
     const scaleFactor = 0.1; // Adjust this value for bounce strength
