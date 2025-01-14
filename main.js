@@ -120,6 +120,22 @@ camera.lookAt(player.position);
 const keys = {};
 let isGrounded = false;
 
+// Player collision detection
+playerBody.addEventListener('collide', (event) => {
+    // Check if collision is with static bodies (ground or platforms)
+    if (event.body === groundBody || event.body.mass === 0) {
+        isGrounded = true;  // Player is grounded when colliding with platforms or ground
+    }
+});
+
+playerBody.addEventListener('endContact', (event) => {
+    // Check if leaving collision with static bodies
+    if (event.body === groundBody || event.body.mass === 0) {
+        isGrounded = false; // Player is no longer grounded after leaving platforms or ground
+    }
+});
+
+// Control logic
 window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
 
@@ -148,7 +164,7 @@ function animate() {
         targetVelocity.z = 5; // Move backward
     }
     if (keys['ArrowLeft']) {
-        targetVelocity.x = -5;
+        targetVelocity.x = -5; // Move left
     } 
     if (keys['ArrowRight']) {
         targetVelocity.x = 5; // Move right
@@ -162,13 +178,13 @@ function animate() {
     playerBody.angularVelocity.set(0, 0, 0); // Reset angular velocity to zero
     playerBody.quaternion.set(0, 0, 0, 1); // Keep the player upright
 
-    // Sync Three.js and Cannon.js
+    // Sync Three.js mesh with Cannon.js body
     player.position.copy(playerBody.position);
     player.quaternion.copy(playerBody.quaternion);
 
     // Sync feet positions with the player
-    leftFoot.position.set(player.position.x - 0.3, player.position.y, player.position.z); // Update left foot position
-    rightFoot.position.set(player.position.x + 0.3, player.position.y, player.position.z); // Update right foot position
+    leftFoot.position.set(player.position.x - 0.3, player.position.y, player.position.z);
+    rightFoot.position.set(player.position.x + 0.3, player.position.y, player.position.z);
 
     // Basic animation: "bouncing" effect on movement
     const scaleFactor = 0.1; // Adjust this value for bounce strength
@@ -178,11 +194,8 @@ function animate() {
         player.scale.y = 1; // Reset scale when not moving
     }
 
-    // Update grounded state (considering the height of the player)
-    isGrounded = playerBody.position.y <= 0.5; // Basic grounded detection
-
     // Update camera position to follow the player
-    camera.position.set(player.position.x, player.position.y + 2, player.position.z + 5); // Follow the player
+    camera.position.set(player.position.x, player.position.y + 2, player.position.z + 5);
     camera.lookAt(player.position);
 
     // Update physics world
