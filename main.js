@@ -9,21 +9,21 @@ document.body.appendChild(renderer.domElement);
 
 // Physics world setup
 const world = new CANNON.World();
-world.gravity.set(0, -9.82, 0); // Set gravity
+world.gravity.set(0, -9.82, 0); // Standard gravity
 
 // Create ground
 const groundGeometry = new THREE.PlaneGeometry(10, 10);
 const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-ground.rotation.x = -Math.PI / 2;
+ground.rotation.x = -Math.PI / 2; // Align it horizontally
 scene.add(ground);
 
-// Create physics body for ground
+// Create a physics body for the ground
 const groundBody = new CANNON.Body({
-    mass: 0 // Static body
+    mass: 0 // Make it static
 });
 groundBody.addShape(new CANNON.Plane());
-groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // Correct rotation
+groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // Align the plane
 world.addBody(groundBody);
 
 // Create player cube
@@ -32,30 +32,33 @@ const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 const player = new THREE.Mesh(playerGeometry, playerMaterial);
 scene.add(player);
 
-// Create physics body for player
+// Create a physics body for the player
 const playerBody = new CANNON.Body({
-    mass: 1 // Dynamic body
+    mass: 1,
+    linearDamping: 0.9,
+    angularDamping: 0.9,
 });
 playerBody.addShape(new CANNON.Box(new CANNON.Vec3(0.25, 0.25, 0.25)));
-playerBody.position.set(0, 0.5, 0); // Adjust initial position to be above the ground
+playerBody.position.set(0, 2.5, 0); // Start above the ground
 world.addBody(playerBody);
 
 // Camera positioning
-camera.position.set(0, 2, 5); // Start position behind and above the player
+camera.position.set(0, 2, 5);
 camera.lookAt(player.position);
 
 // Event listener for keyboard controls
 const keys = {};
+let isGrounded = false;
+
 window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
 
-    // Jump when spacebar is pressed
-    if (e.code === 'Space') {
-        if (playerBody.position.y <= 0.5) { // Only jump if touching the ground
-            playerBody.velocity.y = 5; // Apply an upward force for jump
-        }
+    // Jump when the spacebar is pressed
+    if (e.code === 'Space' && isGrounded) {
+        playerBody.velocity.y = 5; // Apply an upward force for jump
     }
 });
+
 window.addEventListener('keyup', (e) => {
     keys[e.code] = false;
 });
@@ -63,34 +66,49 @@ window.addEventListener('keyup', (e) => {
 // Game loop
 function animate() {
     requestAnimationFrame(animate);
-    
-    // Handle player movement
+
+    // Target velocity for player movement
+    const targetVelocity = new CANNON.Vec3(0, 0, 0);
+
+    // Handle player movement based on key presses
     if (keys['ArrowUp']) {
-        playerBody.position.z -= 0.1; // Move forward
+        targetVelocity.z = -5; // Move forward
     }
     if (keys['ArrowDown']) {
-        playerBody.position.z += 0.1; // Move backward
+        targetVelocity.z = 5; // Move backward
     }
     if (keys['ArrowLeft']) {
-        playerBody.position.x -= 0.1; // Move left
+        targetVelocity.x = -5; // Move left
     }
     if (keys['ArrowRight']) {
-        playerBody.position.x += 0.1; // Move right
+        targetVelocity.x = 5; // Move right
     }
+
+    // Set the linear velocity directly to control player movement
+    playerBody.velocity.x = targetVelocity.x;
+    playerBody.velocity.z = targetVelocity.z;
+
+    // Prevent rotation by fixing the orientation
+    playerBody.angularVelocity.set(0, 0, 0); // Reset angular velocity to zero
+    playerBody.quaternion.set(0, 0, 0, 1); // Reset quaternion to prevent rotation
 
     // Sync Three.js and Cannon.js
     player.position.copy(playerBody.position);
     player.quaternion.copy(playerBody.quaternion);
 
+    // Update grounded state (considering the height of the player)
+    isGrounded = playerBody.position.y <= 0.5;
+
     // Update camera position to follow the player
     camera.position.set(player.position.x, player.position.y + 2, player.position.z + 5); // Follow the player
-    camera.lookAt(player.position); // Look at player
+    camera.lookAt(player.position);
 
     // Update physics world
     world.step(1 / 60);
-    
+
     // Render the scene
     renderer.render(scene, camera);
 }
 
+// Start the animation loop
 animate();
