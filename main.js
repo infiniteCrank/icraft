@@ -224,6 +224,11 @@ const leftFootBody = new CANNON.Body({
       keys[e.code] = false;
     });
     
+    // Camera positioning constants
+const cameraOffset = new THREE.Vector3(0, 2, 2); // Distance behind the player
+const cameraLookAtOffset = new THREE.Vector3(0, 1, 0); // Look slightly above player's position
+
+
     // Game loop
     function animate() {
       requestAnimationFrame(animate);
@@ -266,13 +271,10 @@ const leftFootBody = new CANNON.Body({
         player.scale.y = 1; // Reset scale when not moving
       }
     
-      // Update camera position to follow the player
-      camera.position.set(
-        player.position.x,
-        player.position.y + 2,
-        player.position.z + 5
-      );
-      camera.lookAt(player.position);
+
+    // Calculate camera position and rotation
+    camera.position.copy(player.position).add(cameraOffset);
+    camera.lookAt(player.position.clone().add(cameraLookAtOffset));
     
       // Set the linear velocity directly to control player movement
       const targetVelocity = new CANNON.Vec3(0, 0, 0);
