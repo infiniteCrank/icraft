@@ -175,7 +175,6 @@ function createPlatforms(numPlatforms) {
             cube.geometry.dispose();
             cube.material.dispose();
             scene.remove(cube);
-            world.remove(cubeBody);
             collectedCubes++;
             console.log(`Collected cubes: ${collectedCubes}`);
           }
