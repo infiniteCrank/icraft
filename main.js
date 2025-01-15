@@ -80,13 +80,43 @@ rightFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
 rightFootBody.position.set(0.3, 2, 0);
 world.addBody(rightFootBody);
 
+function getWord() {
+  let word = fetch("wordList.json")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok " + response.statusText);
+      }
+      return response.json();
+    })
+    .then((data) => {
+      console.log(data); // Use your JSON data here
+      console.log(data.length)
+      let wordIndex = getRandomWholeNumber(data.length);
+      console.log("word index: " + wordIndex)
+      return data[wordIndex];
+    })
+    .catch((error) => {
+      console.error(
+        "There has been a problem with your fetch operation:",
+        error
+      );
+    });
+  return word;
+}
+
+// generate a random number between zero and a given max
+function getRandomWholeNumber(max) {
+  return Math.floor(Math.random() * max);
+}
+
 // Font loader for text geometry
 const fontLoader = new FontLoader();
 
 // Variables to track collected items
 let collectedCubes = 0;
-let wordToSpell = "Tiger";
-const totalCubes = wordToSpell.length;
+let wordData = await getWord();
+let wordToSpell = wordData.word;
+let totalCubes = (wordToSpell.length)?wordToSpell.length:0;
 const cubesToRemove = [];
 
 // Function to create random platforms and collectable cubes
@@ -163,13 +193,13 @@ function createPlatforms(numPlatforms) {
       cubeBody.userData = { isCollectible: true, mesh: cube, letter };
 
       // handle cube collision with player
-      cubeBody.addEventListener("collide", (event) => {
+      cubeBody.addEventListener("collide", async (event) => {
         if (event.body === playerBody && cubeBody.userData.isCollectible) {
           let letterToGet = wordToSpell[collectedCubes];
           let letterGot = cubeBody.userData.letter;
           console.log("Letter to get: " + letterToGet);
           console.log("Letter got: " + letterGot);
-          if(letterToGet === letterGot) {
+          if (letterToGet === letterGot) {
             cubeBody.userData.isCollectible = false;
             cubesToRemove.push(cubeBody);
             cube.geometry.dispose();
@@ -178,8 +208,11 @@ function createPlatforms(numPlatforms) {
             collectedCubes++;
             console.log(`Collected cubes: ${collectedCubes}`);
           }
-         
+
           if (collectedCubes === totalCubes) {
+            wordData = await getWord();
+            wordToSpell = wordData.word;
+            totalCubes = (wordToSpell.length)?wordToSpell.length:0;
             removeAllPlatforms(); // Trigger platform removal
             createPlatforms(totalCubes);
             collectedCubes = 0;
@@ -211,34 +244,36 @@ function createPlatforms(numPlatforms) {
 
 // Optimize the removal of all platforms from the game
 function removeAllPlatforms() {
-    // Remove all existing platforms and cubes, preserving the ground, player, and feet
-    const objectsToRemove = scene.children.filter((object) => {
-      return (
-        object instanceof THREE.Mesh &&
-        object !== ground &&
-        object !== leftFoot &&
-        object !== rightFoot &&
-        object !== player
-      );
-    });
-  
-    // Clean up Three.js objects first
-    objectsToRemove.forEach((object) => {
-      if (object.geometry) object.geometry.dispose();
-      if (object.material) object.material.dispose();
-      
-      // Remove any associated physics body
-      const bodyToRemove = world.bodies.find(body => body.userData && body.userData.mesh === object);
-      if (bodyToRemove) {
-          world.remove(bodyToRemove); // Remove from physics world
-      }
-      
-      scene.remove(object);
-    });
-  
-    // Clear the cubesToRemove array to avoid referencing them later
-    cubesToRemove.length = 0;
-  }
+  // Remove all existing platforms and cubes, preserving the ground, player, and feet
+  const objectsToRemove = scene.children.filter((object) => {
+    return (
+      object instanceof THREE.Mesh &&
+      object !== ground &&
+      object !== leftFoot &&
+      object !== rightFoot &&
+      object !== player
+    );
+  });
+
+  // Clean up Three.js objects first
+  objectsToRemove.forEach((object) => {
+    if (object.geometry) object.geometry.dispose();
+    if (object.material) object.material.dispose();
+
+    // Remove any associated physics body
+    const bodyToRemove = world.bodies.find(
+      (body) => body.userData && body.userData.mesh === object
+    );
+    if (bodyToRemove) {
+      world.remove(bodyToRemove); // Remove from physics world
+    }
+
+    scene.remove(object);
+  });
+
+  // Clear the cubesToRemove array to avoid referencing them later
+  cubesToRemove.length = 0;
+}
 
 // Create 5 random platforms
 createPlatforms(totalCubes);
