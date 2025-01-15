@@ -211,40 +211,34 @@ function createPlatforms(numPlatforms) {
 
 // Optimize the removal of all platforms from the game
 function removeAllPlatforms() {
-  // Remove all existing platforms and cubes, preserving the ground, player, and feet
-  const objectsToRemove = scene.children.filter((object) => {
-    return (
-      object instanceof THREE.Mesh &&
-      object !== ground &&
-      object !== leftFoot &&
-      object !== rightFoot &&
-      object !== player
-    );
-  });
-
-  // Clean up the Three.js objects first
-  objectsToRemove.forEach((object) => {
-    if (object.geometry) object.geometry.dispose();
-    if (object.material) object.material.dispose();
-    scene.remove(object);
-  });
-
-  // Now clean up their corresponding physics bodies
-  const bodiesToRemove = world.bodies.filter((body) => {
-    return (
-      body.hasOwnProperty("userData") &&
-      (body.userData.isCollectible === true ||
-        body.userData.isPlatform === true)
-    );
-  });
-
-  bodiesToRemove.forEach((body) => {
-    world.remove(body); // Remove from the physics world
-  });
-
-  // Clear the array of removed cubes to avoid referencing them later
-  cubesToRemove.length = 0;
-}
+    // Remove all existing platforms and cubes, preserving the ground, player, and feet
+    const objectsToRemove = scene.children.filter((object) => {
+      return (
+        object instanceof THREE.Mesh &&
+        object !== ground &&
+        object !== leftFoot &&
+        object !== rightFoot &&
+        object !== player
+      );
+    });
+  
+    // Clean up Three.js objects first
+    objectsToRemove.forEach((object) => {
+      if (object.geometry) object.geometry.dispose();
+      if (object.material) object.material.dispose();
+      
+      // Remove any associated physics body
+      const bodyToRemove = world.bodies.find(body => body.userData && body.userData.mesh === object);
+      if (bodyToRemove) {
+          world.remove(bodyToRemove); // Remove from physics world
+      }
+      
+      scene.remove(object);
+    });
+  
+    // Clear the cubesToRemove array to avoid referencing them later
+    cubesToRemove.length = 0;
+  }
 
 // Create 5 random platforms
 createPlatforms(totalCubes);
