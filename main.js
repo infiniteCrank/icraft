@@ -80,29 +80,31 @@ rightFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
 rightFootBody.position.set(0.3, 2, 0);
 world.addBody(rightFootBody);
 
-function getWord() {
-  let word = fetch("wordList.json")
-    .then((response) => {
+// Function to update the definition display
+function updateDefinitionDisplay(definition) {
+    const definitionElement = document.getElementById("definition");
+    definitionElement.innerText = definition;
+  }
+
+  async function getWord() {
+    let wordData;
+    try {
+      const response = await fetch("wordList.json");
       if (!response.ok) {
         throw new Error("Network response was not ok " + response.statusText);
       }
-      return response.json();
-    })
-    .then((data) => {
+      const data = await response.json();
       console.log(data); // Use your JSON data here
-      console.log(data.length)
+      console.log(data.length);
       let wordIndex = getRandomWholeNumber(data.length);
-      console.log("word index: " + wordIndex)
-      return data[wordIndex];
-    })
-    .catch((error) => {
-      console.error(
-        "There has been a problem with your fetch operation:",
-        error
-      );
-    });
-  return word;
-}
+      console.log("word index: " + wordIndex);
+      wordData = data[wordIndex]; // Select a random word
+      updateDefinitionDisplay(wordData.definition); // Update the definition display
+    } catch (error) {
+      console.error("There has been a problem with your fetch operation:", error);
+    }
+    return wordData;
+  }
 
 // generate a random number between zero and a given max
 function getRandomWholeNumber(max) {
@@ -212,7 +214,8 @@ function createPlatforms(numPlatforms) {
           if (collectedCubes === totalCubes) {
             wordData = await getWord();
             wordToSpell = wordData.word;
-            totalCubes = (wordToSpell.length)?wordToSpell.length:0;
+            totalCubes = (wordToSpell.length) ? wordToSpell.length : 0;
+            updateDefinitionDisplay(wordData.definition); // Update the definition display again
             removeAllPlatforms(); // Trigger platform removal
             createPlatforms(totalCubes);
             collectedCubes = 0;
