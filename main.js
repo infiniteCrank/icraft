@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { FontLoader, TextGeometry } from "addons";
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -62,88 +63,123 @@ scene.add(rightFoot);
 
 // Create physics bodies for feet
 const leftFootBody = new CANNON.Body({
-    mass: 1,
-    linearDamping: 0.9,
-    angularDamping: 0.9,
-  });
-  leftFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
-  leftFootBody.position.set(-0.3, 2, 0);
-  world.addBody(leftFootBody);
-  
-  const rightFootBody = new CANNON.Body({
-    mass: 1,
-    linearDamping: 0.9,
-    angularDamping: 0.9,
-  });
-  rightFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
-  rightFootBody.position.set(0.3, 2, 0);
-  world.addBody(rightFootBody);
-  
-  // Variables to track collected items
-  let collectedCubes = 0;
-  const totalCubes = 5; 
-  const cubesToRemove = [];
-  
-  // Function to create random platforms and collectable cubes
-  function createPlatforms(numPlatforms) {
+  mass: 1,
+  linearDamping: 0.9,
+  angularDamping: 0.9,
+});
+leftFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
+leftFootBody.position.set(-0.3, 2, 0);
+world.addBody(leftFootBody);
+
+const rightFootBody = new CANNON.Body({
+  mass: 1,
+  linearDamping: 0.9,
+  angularDamping: 0.9,
+});
+rightFootBody.addShape(new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1)));
+rightFootBody.position.set(0.3, 2, 0);
+world.addBody(rightFootBody);
+
+// Font loader for text geometry
+const fontLoader = new FontLoader();
+
+// Variables to track collected items
+let collectedCubes = 0;
+let wordToSpell = "Tiger";
+const totalCubes = wordToSpell.length;
+const cubesToRemove = [];
+
+// Function to create random platforms and collectable cubes
+function createPlatforms(numPlatforms) {
+  fontLoader.load("helvetiker_regular.typeface.json", (font) => {
     for (let i = 0; i < numPlatforms; i++) {
+      let letter = wordToSpell[i];
+      // ****************** platform stuff ********************
       const platformWidth = 1;
       const platformDepth = 1;
       const platformHeight = 0.1;
-  
-      const platformGeometry = new THREE.BoxGeometry(platformWidth, platformHeight, platformDepth);
+
+      const platformGeometry = new THREE.BoxGeometry(
+        platformWidth,
+        platformHeight,
+        platformDepth
+      );
       const platformMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
       const platform = new THREE.Mesh(platformGeometry, platformMaterial);
-  
+
       const maxPosition = 4;
       const minY = 0.5;
       const maxY = 2;
-  
+
       platform.position.set(
         Math.random() * (maxPosition * 2) - maxPosition,
         Math.random() * (maxY - minY) + minY,
         Math.random() * (maxPosition * 2) - maxPosition
       );
-  
+
       scene.add(platform);
-  
+
       const platformBody = new CANNON.Body({
         mass: 0,
       });
       platformBody.userData = { isPlatform: true };
-      platformBody.addShape(new CANNON.Box(new CANNON.Vec3(platformWidth / 2, platformHeight / 2, platformDepth / 2)));
+      platformBody.addShape(
+        new CANNON.Box(
+          new CANNON.Vec3(
+            platformWidth / 2,
+            platformHeight / 2,
+            platformDepth / 2
+          )
+        )
+      );
       platformBody.position.copy(platform.position);
       world.addBody(platformBody);
-  
+      // ****************** END platform stuff begin cube stuff ********************
+
       const cubeSize = 0.3;
       const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
       const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff });
       const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-  
+
       cube.position.set(
         platform.position.x,
         platform.position.y + platformHeight / 2 + cubeSize / 2,
         platform.position.z
       );
-  
+
       scene.add(cube);
-  
+
       const cubeBody = new CANNON.Body({
-        mass: 1, 
+        mass: 1,
       });
-      cubeBody.addShape(new CANNON.Box(new CANNON.Vec3(cubeSize / 2, cubeSize / 2, cubeSize / 2)));
+      cubeBody.addShape(
+        new CANNON.Box(
+          new CANNON.Vec3(cubeSize / 2, cubeSize / 2, cubeSize / 2)
+        )
+      );
       cubeBody.position.copy(cube.position);
       world.addBody(cubeBody);
-  
-      cubeBody.userData = { isCollectible: true, mesh: cube };
-  
-      cubeBody.addEventListener('collide', (event) => {
+
+      cubeBody.userData = { isCollectible: true, mesh: cube, letter };
+
+      // handle cube collision with player
+      cubeBody.addEventListener("collide", (event) => {
         if (event.body === playerBody && cubeBody.userData.isCollectible) {
-          cubeBody.userData.isCollectible = false; 
-          cubesToRemove.push(cubeBody);
-          scene.remove(cube);
-          collectedCubes++; 
-          console.log(`Collected cubes: ${collectedCubes}`);
+          let letterToGet = wordToSpell[collectedCubes];
+          let letterGot = cubeBody.userData.letter;
+          console.log("Letter to get: " + letterToGet);
+          console.log("Letter got: " + letterGot);
+          if(letterToGet === letterGot) {
+            cubeBody.userData.isCollectible = false;
+            cubesToRemove.push(cubeBody);
+            cube.geometry.dispose();
+            cube.material.dispose();
+            scene.remove(cube);
+            world.remove(cubeBody);
+            collectedCubes++;
+            console.log(`Collected cubes: ${collectedCubes}`);
+          }
+         
           if (collectedCubes === totalCubes) {
             removeAllPlatforms(); // Trigger platform removal
             createPlatforms(totalCubes);
@@ -151,158 +187,180 @@ const leftFootBody = new CANNON.Body({
           }
         }
       });
-    }
-  }
-  
-  // Optimize the removal of all platforms from the game
-  function removeAllPlatforms() {
-    // Remove all existing platforms and cubes, preserving the ground, player, and feet
-    const objectsToRemove = scene.children.filter(object => {
-      return object instanceof THREE.Mesh 
-          && object !== ground 
-          && object !== leftFoot 
-          && object !== rightFoot 
-          && object !== player;
-    });
-  
-    // Clean up the Three.js objects first
-    objectsToRemove.forEach(object => {
-      if (object.geometry) object.geometry.dispose();
-      if (object.material) object.material.dispose();
-      scene.remove(object);
-    });
-  
-    // Now clean up their corresponding physics bodies
-    const bodiesToRemove = world.bodies.filter(body => {
-      return body.hasOwnProperty('userData') &&
-          (body.userData.isCollectible === true || body.userData.isPlatform === true);
-    });
-  
-    bodiesToRemove.forEach(body => {
-        world.remove(body); // Remove from the physics world
+      // ******************* END cube stuff begin text ********************
+      const textGeometry = new TextGeometry(letter, {
+        font: font,
+        size: 0.2,
+        depth: 0.01,
+        curveSegments: 12,
+        bevelEnabled: false,
       });
-    
-      // Clear the array of removed cubes to avoid referencing them later
-      cubesToRemove.length = 0; 
+
+      const textMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+
+      // Position the text on top of the platform
+      textMesh.position.set(
+        platform.position.x,
+        platform.position.y + 0.5,
+        platform.position.z
+      );
+      scene.add(textMesh);
     }
-    
-    // Create 5 random platforms
-    createPlatforms(totalCubes);
-    
-    // Camera positioning
-    camera.position.set(0, 2, 5);
-    camera.lookAt(player.position);
-    
-    // Event listener for keyboard controls
-    const keys = {};
-    let isGrounded = false;
-    
-    // Player collision detection
-    playerBody.addEventListener("collide", (event) => {
-      if (event.body === groundBody || event.body.mass === 0) {
-        isGrounded = true; // Player is grounded when colliding with platforms or ground
-      }
-    });
-    
-    playerBody.addEventListener("endContact", (event) => {
-      if (event.body === groundBody || event.body.mass === 0) {
-        isGrounded = false; // Player is no longer grounded after leaving platforms or ground
-      }
-    });
-    
-    // Control logic
-    window.addEventListener("keydown", (e) => {
-      keys[e.code] = true;
-    
-      // Jump when the spacebar is pressed
-      if (e.code === "Space" && isGrounded) {
-        playerBody.velocity.y = 5; // Apply an upward force for jump
-      }
-    });
-    
-    window.addEventListener("keyup", (e) => {
-      keys[e.code] = false;
-    });
-    
-    // Camera positioning constants
+  });
+}
+
+// Optimize the removal of all platforms from the game
+function removeAllPlatforms() {
+  // Remove all existing platforms and cubes, preserving the ground, player, and feet
+  const objectsToRemove = scene.children.filter((object) => {
+    return (
+      object instanceof THREE.Mesh &&
+      object !== ground &&
+      object !== leftFoot &&
+      object !== rightFoot &&
+      object !== player
+    );
+  });
+
+  // Clean up the Three.js objects first
+  objectsToRemove.forEach((object) => {
+    if (object.geometry) object.geometry.dispose();
+    if (object.material) object.material.dispose();
+    scene.remove(object);
+  });
+
+  // Now clean up their corresponding physics bodies
+  const bodiesToRemove = world.bodies.filter((body) => {
+    return (
+      body.hasOwnProperty("userData") &&
+      (body.userData.isCollectible === true ||
+        body.userData.isPlatform === true)
+    );
+  });
+
+  bodiesToRemove.forEach((body) => {
+    world.remove(body); // Remove from the physics world
+  });
+
+  // Clear the array of removed cubes to avoid referencing them later
+  cubesToRemove.length = 0;
+}
+
+// Create 5 random platforms
+createPlatforms(totalCubes);
+
+// Camera positioning
+camera.position.set(0, 2, 5);
+camera.lookAt(player.position);
+
+// Event listener for keyboard controls
+const keys = {};
+let isGrounded = false;
+
+// Player collision detection
+playerBody.addEventListener("collide", (event) => {
+  if (event.body === groundBody || event.body.mass === 0) {
+    isGrounded = true; // Player is grounded when colliding with platforms or ground
+  }
+});
+
+playerBody.addEventListener("endContact", (event) => {
+  if (event.body === groundBody || event.body.mass === 0) {
+    isGrounded = false; // Player is no longer grounded after leaving platforms or ground
+  }
+});
+
+// Control logic
+window.addEventListener("keydown", (e) => {
+  keys[e.code] = true;
+
+  // Jump when the spacebar is pressed
+  if (e.code === "Space" && isGrounded) {
+    playerBody.velocity.y = 5; // Apply an upward force for jump
+  }
+});
+
+window.addEventListener("keyup", (e) => {
+  keys[e.code] = false;
+});
+
+// Camera positioning constants
 const cameraOffset = new THREE.Vector3(0, 2, 2); // Distance behind the player
 const cameraLookAtOffset = new THREE.Vector3(0, 1, 0); // Look slightly above player's position
 
+// Game loop
+function animate() {
+  requestAnimationFrame(animate);
 
-    // Game loop
-    function animate() {
-      requestAnimationFrame(animate);
-    
-      // Update physics world
-      world.step(1 / 60);
-    
-      // Remove marked cubes from the physics world
-      while (cubesToRemove.length) {
-        const bodyToRemove = cubesToRemove.pop();
-        world.remove(bodyToRemove); // Remove from physics world
-      }
-    
-      // Sync Three.js objects with Cannon.js bodies
-      player.position.copy(playerBody.position);
-      player.quaternion.copy(playerBody.quaternion);
-    
-      // Sync feet positions with the player
-      leftFoot.position.set(
-        player.position.x - 0.3,
-        player.position.y,
-        player.position.z
-      );
-      rightFoot.position.set(
-        player.position.x + 0.3,
-        player.position.y,
-        player.position.z
-      );
-    
-      // Basic animation: "bouncing" effect on movement
-      const scaleFactor = 0.1; // Adjust this value for bounce strength
-      if (
-        keys["ArrowUp"] ||
-        keys["ArrowDown"] ||
-        keys["ArrowLeft"] ||
-        keys["ArrowRight"]
-      ) {
-        player.scale.y = 1 + Math.sin(Date.now() * 0.005) * scaleFactor; // Bounce while moving
-      } else {
-        player.scale.y = 1; // Reset scale when not moving
-      }
-    
+  // Update physics world
+  world.step(1 / 60);
 
-    // Calculate camera position and rotation
-    camera.position.copy(player.position).add(cameraOffset);
-    camera.lookAt(player.position.clone().add(cameraLookAtOffset));
-    
-      // Set the linear velocity directly to control player movement
-      const targetVelocity = new CANNON.Vec3(0, 0, 0);
-      if (keys["ArrowUp"]) {
-        targetVelocity.z = -5; // Move forward
-      }
-      if (keys["ArrowDown"]) {
-        targetVelocity.z = 5; // Move backward
-      }
-      if (keys["ArrowLeft"]) {
-        targetVelocity.x = -5; // Move left
-      }
-      if (keys["ArrowRight"]) {
-        targetVelocity.x = 5; // Move right
-      }
-    
-      // Set the player's linear velocity
-      playerBody.velocity.x = targetVelocity.x;
-      playerBody.velocity.z = targetVelocity.z;
-    
-      // Disable rotation
-      playerBody.angularVelocity.set(0, 0, 0);
-      playerBody.quaternion.set(0, 0, 0, 1); // Keep the player upright
-    
-      // Render the scene
-      renderer.render(scene, camera);
-        
-      }
-      
-      // Start the animation loop
-      animate();
+  // Remove marked cubes from the physics world
+  while (cubesToRemove.length) {
+    const bodyToRemove = cubesToRemove.pop();
+    world.remove(bodyToRemove); // Remove from physics world
+  }
+
+  // Sync Three.js objects with Cannon.js bodies
+  player.position.copy(playerBody.position);
+  player.quaternion.copy(playerBody.quaternion);
+
+  // Sync feet positions with the player
+  leftFoot.position.set(
+    player.position.x - 0.3,
+    player.position.y,
+    player.position.z
+  );
+  rightFoot.position.set(
+    player.position.x + 0.3,
+    player.position.y,
+    player.position.z
+  );
+
+  // Basic animation: "bouncing" effect on movement
+  const scaleFactor = 0.1; // Adjust this value for bounce strength
+  if (
+    keys["ArrowUp"] ||
+    keys["ArrowDown"] ||
+    keys["ArrowLeft"] ||
+    keys["ArrowRight"]
+  ) {
+    player.scale.y = 1 + Math.sin(Date.now() * 0.005) * scaleFactor; // Bounce while moving
+  } else {
+    player.scale.y = 1; // Reset scale when not moving
+  }
+
+  // Calculate camera position and rotation
+  camera.position.copy(player.position).add(cameraOffset);
+  camera.lookAt(player.position.clone().add(cameraLookAtOffset));
+
+  // Set the linear velocity directly to control player movement
+  const targetVelocity = new CANNON.Vec3(0, 0, 0);
+  if (keys["ArrowUp"]) {
+    targetVelocity.z = -5; // Move forward
+  }
+  if (keys["ArrowDown"]) {
+    targetVelocity.z = 5; // Move backward
+  }
+  if (keys["ArrowLeft"]) {
+    targetVelocity.x = -5; // Move left
+  }
+  if (keys["ArrowRight"]) {
+    targetVelocity.x = 5; // Move right
+  }
+
+  // Set the player's linear velocity
+  playerBody.velocity.x = targetVelocity.x;
+  playerBody.velocity.z = targetVelocity.z;
+
+  // Disable rotation
+  playerBody.angularVelocity.set(0, 0, 0);
+  playerBody.quaternion.set(0, 0, 0, 1); // Keep the player upright
+
+  // Render the scene
+  renderer.render(scene, camera);
+}
+
+// Start the animation loop
+animate();
